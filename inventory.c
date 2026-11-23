@@ -10,7 +10,7 @@ static struct Item shopCatalog[] = {
     {102, "Mega Health Potion",  ITEM_POTION, 100, 60,  1},
     {201, "Iron Broadsword",     ITEM_WEAPON, 8,   120, 1},
     {202, "Steel Claymore",      ITEM_WEAPON, 16,  280, 1},
-    {301, "Leather Tunic",       ITEM_ARMOR,  5,   100, 1},
+    {301, "Leather Tunic",       ITEM_ARMOR,  5,   1000, 1},
     {302, "Knight Chainmail",    ITEM_ARMOR,  12,  250, 1}
 };
 static const int SHOP_ITEM_COUNT = 6;
