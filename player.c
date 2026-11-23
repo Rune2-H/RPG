@@ -51,7 +51,7 @@ void createCharacter(struct Player *p) {
         strcpy(p->class_type, "Mage");
         p->max_hp = 80;
         p->base_atk = 25;
-        p->base_def = 5;
+        p->base_def = 6;
 
         p->inventory[0].item_id = 212;
         strcpy(p->inventory[0].name, "Apprentice Staff");
