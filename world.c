@@ -102,7 +102,7 @@ static void exploreAreaByDirection(struct Player *p, int area_type) {
                    dir_names[dir - 1], enemy.name, enemy.level_req);
             pauseScreen();
 
-            int result = startCombat(p, enemy);
+            int result = startCombat(p, enemy, 1); // encounter biasa: boleh kabur
             if (result == COMBAT_LOSE) {
                 return; // Kembali ke exploreWorld -> main.c untuk Game Over
             }
@@ -192,6 +192,100 @@ void restAtVillage(struct Player *p) {
     }
 }
 
+// ============================================================================
+// MODE BOSS RUSH (INFINITE)
+// ============================================================================
+
+// Boss gelombang ke-`wave`; makin tinggi gelombang, makin kejam.
+static struct Monster spawnBossRushMonster(int wave) {
+    static const char *names[] = {
+        "Malakor's Echo", "Crimson Revenant", "Ashen Warlord",
+        "Void Herald", "Twin of the Abyss", "The Unnamed King"
+    };
+
+    struct Monster m;
+    int idx = (wave - 1) % (int)(sizeof(names) / sizeof(names[0]));
+
+    m.monster_id = 9000 + wave;
+    strcpy(m.name, names[idx]);
+    m.level_req = 5 + wave;
+    m.max_hp = 260 + 70 * (wave - 1);
+    m.hp = m.max_hp;
+    m.atk = 30 + 5 * (wave - 1);
+    m.def = 14 + 2 * (wave - 1);
+    m.gold_reward = 150 + 50 * (wave - 1);
+    m.exp_reward = 100 + 40 * (wave - 1);
+
+    return m;
+}
+
+void startBossRush(struct Player *p) {
+    clearScreen();
+    printf("==================================================\n");
+    printf("            INFINITE BOSS RUSH                    \n");
+    printf("==================================================\n");
+    printf("  Arena tanpa jalan pulang. Gelombang boss tiada\n");
+    printf("  akhir: tidak ada toko, tidak ada istirahat, dan\n");
+    printf("  tombol kabur terkunci. Hanya bekal yang sekarang\n");
+    printf("  kamu bawa yang bisa menolongmu.\n");
+    printf("--------------------------------------------------\n");
+    printf("  !! PERINGATAN !!\n");
+    printf("  Kalau kamu mati di dalam sini, karakter ini\n");
+    printf("  DIHAPUS PERMANEN dan file save-nya ikut hilang.\n");
+    printf("  Tidak ada kesempatan kedua. Pastikan sudah Save\n");
+    printf("  kalau kamu masih ingin menyimpan progres lain.\n");
+    printf("--------------------------------------------------\n");
+    printf(" 1. Aku siap. Masuk arena.\n");
+    printf(" 2. Batal (kembali ke Peta Dunia)\n");
+    printf("Pilihan (1-2): ");
+
+    int confirm = getValidIntInput(1, 2);
+    if (confirm != 1) {
+        return;
+    }
+
+    int wave = 0;
+
+    while (1) {
+        wave++;
+
+        struct Monster boss = spawnBossRushMonster(wave);
+
+        clearScreen();
+        printf("==================================================\n");
+        printf("  GELOMBANG %d: %s muncul!\n", wave, boss.name);
+        printf("==================================================\n");
+        pauseScreen();
+
+        int result = startCombat(p, boss, 0); // 0 = kabur dikunci
+
+        if (result == COMBAT_LOSE) {
+            // Karakter gugur: save dihapus, tidak ada yang tersisa
+            clearScreen();
+            printf("==================================================\n");
+            printf("         KARAKTER DIHAPUS PERMANEN                 \n");
+            printf("==================================================\n");
+            printf("  Kamu bertahan sampai gelombang %d.\n", wave);
+            printf("  Save game '%s' dihapus. Nama %s hilang selamanya.\n",
+                   SAVE_FILE, p->name);
+            printf("==================================================\n");
+
+            remove(SAVE_FILE);
+
+            p->hp = 0;
+            p->gold = 0;
+            p->item_count = 0;
+            p->boss_rush_unlocked = 0;
+
+            pauseScreen();
+            return;
+        }
+
+        printf("\n>> Gelombang %d selesai! Lanjut ke gelombang %d...\n", wave, wave + 1);
+        pauseScreen();
+    }
+}
+
 void exploreWorld(struct Player *p) {
     while (p->hp > 0) {
         clearScreen();
@@ -204,11 +298,20 @@ void exploreWorld(struct Player *p) {
         printf(" 2. Hutan Rimba     [Lv. 1 - 2]  - Jelajah Arah, Chest & Monster Ringan\n");
         printf(" 3. Gua Kegelapan   [Lv. 3 - 4]  - Jelajah Arah, Chest & Monster Kuat\n");
         printf(" 4. Kastil Boss     [Lv. 5+]     - Lawan Raja Iblis (Final Boss)\n");
+        if (p->boss_rush_unlocked) {
+            printf(" 5. BOSS RUSH       [MODE BARU]  - Gelombang boss tanpa akhir (mati = hapus)\n");
+        }
         printf(" 0. Kembali ke Menu Utama\n");
         printf("==================================================\n");
-        printf("Pilih tujuan jelajah (0-4): ");
 
-        int choice = getValidIntInput(0, 4);
+        if (p->boss_rush_unlocked) {
+            printf("Pilih tujuan jelajah (0-5): ");
+        } else {
+            printf("Pilih tujuan jelajah (0-4): ");
+        }
+
+        int max_choice = p->boss_rush_unlocked ? 5 : 4;
+        int choice = getValidIntInput(0, max_choice);
         if (choice == 0) {
             break;
         }
@@ -218,6 +321,8 @@ void exploreWorld(struct Player *p) {
         } else if (choice == 2 || choice == 3) {
             // Masuk ke mode jelajah arah (Utara/Selatan/Timur/Barat)
             exploreAreaByDirection(p, choice);
+        } else if (choice == 5 && p->boss_rush_unlocked) {
+            startBossRush(p);
         } else if (choice == 4) {
             clearScreen();
             printf("==================================================\n");
@@ -233,14 +338,23 @@ void exploreWorld(struct Player *p) {
             int confirm = getValidIntInput(1, 2);
             if (confirm == 1) {
                 struct Monster boss = spawnBossMonster();
-                int result = startCombat(p, boss);
+                int result = startCombat(p, boss, 1);
 
                 if (result == COMBAT_WIN) {
+                    p->boss_rush_unlocked = 1;
+
                     clearScreen();
                     printf("**************************************************\n");
                     printf("   SELAMAT! KAMU MENAMATKAN CHRONICLES OF ALGORITMA!\n");
                     printf("   %s (Lv.%d) resmi menjadi Pahlawan Legendaris!\n",
                            p->name, p->level);
+                    printf("**************************************************\n");
+                    printf("\n");
+                    printf("  >>> MODE BARU TERBUKA: INFINITE BOSS RUSH <<<\n");
+                    printf("  Gelombang boss tanpa akhir, tanpa toko, tanpa\n");
+                    printf("  kabur. Masuk lewat Peta Dunia -> pilihan 5.\n");
+                    printf("  PERINGATAN: kalau kamu mati di sana, karakter\n");
+                    printf("  ini dihapus permanen. Save dulu kalau ragu!\n");
                     printf("**************************************************\n");
                     printf("Kamu masih bisa lanjut menjelajah atau Save progresmu.\n");
                     pauseScreen();

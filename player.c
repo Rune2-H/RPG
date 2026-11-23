@@ -21,8 +21,8 @@ void createCharacter(struct Player *p) {
 
     // 2. Pilih Class Karakter
     printf("\nPilih Class Karakter:\n");
-    printf("1. Warrior  (HP: 120 | ATK: 15 | DEF: 10) - Kuat & Tahan Banting\n");
-    printf("2. Mage     (HP: 80  | ATK: 25 | DEF: 5)  - Serangan Tinggi, HP Tipis\n");
+    printf("1. Warrior  (HP: 150 | ATK: 15 | DEF: 10) - Kuat & Tahan Banting\n");
+    printf("2. Mage     (HP: 80  | ATK: 25 | DEF: 6)  - Serangan Tinggi, HP Tipis\n");
     printf("3. Rogue    (HP: 100 | ATK: 20 | DEF: 7)  - Seimbang & Lincah\n");
     printf("Pilihan (1-3): ");
 
@@ -97,6 +97,9 @@ void createCharacter(struct Player *p) {
 
     p->equipped_armor_id = p->inventory[1].item_id;
     p->bonus_def = p->inventory[1].stat_value;
+
+    // 7. Mode Boss Rush selalu terkunci di karakter baru
+    p->boss_rush_unlocked = 0;
 
     p->hp = p->max_hp; // HP penuh saat baru dibuat
 

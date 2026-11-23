@@ -34,6 +34,10 @@ int saveGame(struct Player p) {
                 p.inventory[i].quantity);
     }
 
+    // 5. Tulis progres mode tambahan (baris ini opsional saat load,
+    //    jadi save lama yang belum punya baris ini tetap bisa dibaca)
+    fprintf(fp, "%d\n", p.boss_rush_unlocked);
+
     fclose(fp);
     return 1;
 }
@@ -85,6 +89,10 @@ int loadGame(struct Player *p) {
             return 0;
         }
     }
+
+    // 5. Baca progres mode tambahan (opsional; save lama tidak punya baris ini)
+    p->boss_rush_unlocked = 0;
+    fscanf(fp, "%d", &p->boss_rush_unlocked);
 
     fclose(fp);
     return 1;

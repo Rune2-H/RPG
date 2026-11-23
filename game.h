@@ -61,6 +61,9 @@ struct Player {
     // Relasi Tas (1-to-Many)
     struct Item inventory[MAX_INVENTORY];
     int item_count;               // Jumlah jenis item unik yang sedang ada di tas
+
+    // Progresi Mode Tambahan
+    int boss_rush_unlocked;       // 1 jika Raja Iblis sudah pernah dikalahkan
 };
 
 // Representasi Tabel: monsters
@@ -86,7 +89,8 @@ void showStatus(struct Player p);
 void checkLevelUp(struct Player *p);
 
 // --- MODUL 2: combat.c (Anggota 2) ---
-int startCombat(struct Player *p, struct Monster m);
+// allow_flee: 1 = tombol kabur aktif, 0 = terkunci (dipakai Boss Rush)
+int startCombat(struct Player *p, struct Monster m, int allow_flee);
 
 // --- MODUL 3: inventory.c (Anggota 3) ---
 void openShop(struct Player *p);
@@ -96,6 +100,7 @@ int usePotionInCombat(struct Player *p); // Opsional: dipanggil saat player pili
 // --- MODUL 4: world.c (Anggota 4) ---
 void exploreWorld(struct Player *p);
 void restAtVillage(struct Player *p);
+void startBossRush(struct Player *p);     // Mode tanpa akhir; mati = save dihapus
 
 // --- MODUL 5: saveload.c (Anggota 5) ---
 int saveGame(struct Player p);            // Return 1 jika berhasil, 0 jika gagal
