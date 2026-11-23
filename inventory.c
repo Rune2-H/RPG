@@ -12,18 +12,12 @@
 #define SELL_PERCENT 40
 
 static struct Item shopCatalog[] = {
-    {101, "Small Health Potion", ITEM_POTION, 40, 25, 1},
-    {102, "Mega Health Potion", ITEM_POTION, 100, 60, 1},
-    {201, "Iron Broadsword", ITEM_WEAPON, 8, 120, 1},
-    {202, "Steel Claymore", ITEM_WEAPON, 16, 280, 1},
-    {203, "Rusty Sword", ITEM_WEAPON, 5, 60, 1},
-    {204, "Hunter Dagger", ITEM_WEAPON, 11, 180, 1},
-    {205, "Battle Axe", ITEM_WEAPON, 20, 400, 1},
-    {206, "Arcane Staff", ITEM_WEAPON, 22, 450, 1},
-    {207, "Shadow Blade", ITEM_WEAPON, 27, 700, 1},
-    {208, "Dragonfang", ITEM_WEAPON, 34, 1000, 1},
-    {301, "Leather Tunic", ITEM_ARMOR, 5, 1000, 1},
-    {302, "Knight Chainmail", ITEM_ARMOR, 12, 2500, 1}
+    {101, "Small Health Potion", ITEM_POTION, 40,  25,  1},
+    {102, "Mega Health Potion",  ITEM_POTION, 100, 60,  1},
+    {201, "Iron word",     ITEM_WEAPON, 8,   120, 1},
+    {202, "Steel Claymore",      ITEM_WEAPON, 16,  280, 1},
+    {301, "Leather Tunic",       ITEM_ARMOR,  5,   1000, 1},
+    {302, "Knight Chainmail",    ITEM_ARMOR,  12,  250, 1}
 };
 
 #define SHOP_ITEM_COUNT \
