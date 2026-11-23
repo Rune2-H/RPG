@@ -28,11 +28,11 @@ void createCharacter(struct Player *p) {
 
     int choice = getValidIntInput(1, 3);
 
-    // 3. Inisialisasi Data Dasar & Progresi (Gold tetap 100)
+    // 3. Inisialisasi Data Dasar & Progresi (Gold tetap 20)
     p->player_id = 1;
     p->level = 1;
     p->exp = 0;
-    p->gold = 100;
+    p->gold = 20;
 
     // 4. Set Stat & Senjata Pemula berdasarkan Class (Slot 0)
     if (choice == 1) {

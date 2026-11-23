@@ -4,7 +4,6 @@
 // MODUL 2: combat.c (Sistem Pertarungan Turn-Based)
 // ============================================================================
 
-// Fungsi pembantu internal (static agar tidak bentrok dengan file lain)
 static int calculateDamage(int atk, int def, int is_critical) {
     int base_dmg = atk - def;
     if (base_dmg < 1) {
@@ -17,7 +16,12 @@ static int calculateDamage(int atk, int def, int is_critical) {
 }
 
 int startCombat(struct Player *p, struct Monster m) {
-    int skill_cooldown = 0; // Cooldown skill spesial (0 = siap dipakai)
+    // Variabel sesi pertarungan (otomatis reset setelah pertarungan selesai)
+    int temp_atk_buff = 0;      // Tambahan ATK sementara (dari skill seperti Roar)
+    int special_used = 0;       // 0 = belum dipakai, 1 = sudah dipakai (1x per sesi)
+    int skill_cooldown = 0;     // Cooldown untuk class selain Warrior (Mage/Rogue)
+
+    int is_warrior = (strcmp(p->class_type, "Warrior") == 0);
 
     clearScreen();
     printf("==========================================\n");
@@ -26,10 +30,9 @@ int startCombat(struct Player *p, struct Monster m) {
     printf("==========================================\n");
     pauseScreen();
 
-    // Loop pertarungan selama Player dan Monster masih hidup
     while (p->hp > 0 && m.hp > 0) {
         clearScreen();
-        int total_atk = p->base_atk + p->bonus_atk;
+        int total_atk = p->base_atk + p->bonus_atk + temp_atk_buff;
         int total_def = p->base_def + p->bonus_def;
 
         // Tampilkan HUD Pertarungan
@@ -38,89 +41,163 @@ int startCombat(struct Player *p, struct Monster m) {
         printf(" HP: %d / %d | ATK: %d | DEF: %d\n", m.hp, m.max_hp, m.atk, m.def);
         printf("------------------------------------------\n");
         printf(" [KAMU]  %s (%s - Lv.%d)\n", p->name, p->class_type, p->level);
-        printf(" HP: %d / %d | ATK: %d | DEF: %d\n", p->hp, p->max_hp, total_atk, total_def);
+        if (temp_atk_buff > 0) {
+            printf(" HP: %d / %d | ATK: %d (+%d Buff) | DEF: %d\n",
+                   p->hp, p->max_hp, total_atk, temp_atk_buff, total_def);
+        } else {
+            printf(" HP: %d / %d | ATK: %d | DEF: %d\n",
+                   p->hp, p->max_hp, total_atk, total_def);
+        }
         printf("==========================================\n");
         printf("Pilih Aksi:\n");
-        printf("1. Serang Biasa (Attack)\n");
-        if (skill_cooldown == 0) {
-            printf("2. Skill Spesial %s [SIAP]\n", p->class_type);
-        } else {
-            printf("2. Skill Spesial %s [Cooldown: %d giliran]\n", p->class_type, skill_cooldown);
-        }
-        printf("3. Gunakan Potion\n");
-        printf("4. Kabur (Run)\n");
-        printf("Pilihan (1-4): ");
 
-        int choice = getValidIntInput(1, 4);
-        int player_acted = 0; // Penanda apakah giliran player sudah terpakai
+        int max_choice = 4;
+        if (is_warrior) {
+            max_choice = 5;
+            printf("1. Slash (Serangan Biasa)\n");
+            printf("2. Roar (+5 ATK selama pertarungan)\n");
+            if (!special_used) {
+                printf("3. Heavy Slash [SPESIAL - 1x Per Pertarungan]\n");
+            } else {
+                printf("3. Heavy Slash [SUDAH DIGUNAKAN]\n");
+            }
+            printf("4. Gunakan Potion\n");
+            printf("5. Kabur (Run)\n");
+            printf("Pilihan (1-5): ");
+        } else {
+            // Menu default sementara untuk Mage & Rogue
+            printf("1. Serang Biasa (Attack)\n");
+            if (skill_cooldown == 0) {
+                printf("2. Skill Spesial %s [SIAP]\n", p->class_type);
+            } else {
+                printf("2. Skill Spesial %s [Cooldown: %d giliran]\n", p->class_type, skill_cooldown);
+            }
+            printf("3. Gunakan Potion\n");
+            printf("4. Kabur (Run)\n");
+            printf("Pilihan (1-4): ");
+        }
+
+        int choice = getValidIntInput(1, max_choice);
+        int player_acted = 0;
 
         printf("\n------------------------------------------\n");
 
-        // --- GILIRAN PLAYER ---
-        if (choice == 1) {
-            // Peluang Critical Hit 20%
-            int is_crit = (rand() % 100) < 20;
-            int dmg = calculateDamage(total_atk, m.def, is_crit);
-            m.hp -= dmg;
-            if (m.hp < 0) m.hp = 0;
+        // --- ALUR KHUSUS WARRIOR ---
+        if (is_warrior) {
+            if (choice == 1) {
+                // Slash
+                int is_crit = (rand() % 100) < 20;
+                int dmg = calculateDamage(total_atk, m.def, is_crit);
+                m.hp -= dmg;
+                if (m.hp < 0) m.hp = 0;
 
-            if (is_crit) {
-                printf(">> CRITICAL HIT! %s menebas %s sebesar %d damage!\n", p->name, m.name, dmg);
-            } else {
-                printf(">> %s menyerang %s sebesar %d damage!\n", p->name, m.name, dmg);
-            }
-            player_acted = 1;
-
-        } else if (choice == 2) {
-            if (skill_cooldown > 0) {
-                printf(">> Skill masih cooldown (%d giliran lagi)! Pilih aksi lain.\n", skill_cooldown);
-                pauseScreen();
-                continue; // Ulangi input tanpa membuang giliran
-            }
-
-            int dmg = 0;
-            if (strcmp(p->class_type, "Warrior") == 0) {
-                // Heavy Slash: 1.8x ATK
-                dmg = calculateDamage((int)(total_atk * 1.8), m.def, 0);
-                printf(">> [HEAVY SLASH] %s menghantam keras %s sebesar %d damage!\n", p->name, m.name, dmg);
-            } else if (strcmp(p->class_type, "Mage") == 0) {
-                // Fireball: Menembus setengah DEF musuh, 1.6x ATK
-                dmg = calculateDamage((int)(total_atk * 1.6), m.def / 2, 0);
-                printf(">> [FIREBALL] Bola api membakar %s sebesar %d damage!\n", m.name, dmg);
-            } else {
-                // Backstab (Rogue): Pasti Critical Hit!
-                dmg = calculateDamage(total_atk, m.def, 1);
-                printf(">> [BACKSTAB] Serangan titik lemah %s menghasilkan %d CRITICAL damage!\n", m.name, dmg);
-            }
-
-            m.hp -= dmg;
-            if (m.hp < 0) m.hp = 0;
-            skill_cooldown = 3; // Cooldown 3 giliran
-            player_acted = 1;
-
-        } else if (choice == 3) {
-            // Memanggil fungsi dari inventory.c
-            if (usePotionInCombat(p)) {
+                if (is_crit) {
+                    printf(">> CRITICAL SLASH! %s menebas %s sebesar %d damage!\n", p->name, m.name, dmg);
+                } else {
+                    printf(">> [SLASH] %s menebas %s sebesar %d damage!\n", p->name, m.name, dmg);
+                }
                 player_acted = 1;
-            } else {
-                // Jika tidak punya potion atau HP sudah penuh, jangan buang giliran
-                pauseScreen();
-                continue;
-            }
 
-        } else if (choice == 4) {
-            // Peluang kabur 50%
-            if ((rand() % 100) < 50) {
-                printf(">> Kamu berhasil melarikan diri dari %s!\n", m.name);
-                pauseScreen();
-                return COMBAT_RUN;
-            } else {
-                printf(">> Gagal kabur! %s menghadang jalanmu!\n", m.name);
+            } else if (choice == 2) {
+                // Roar (+5 ATK sementara)
+                temp_atk_buff += 5;
+                printf(">> [ROAR] %s mengaum garang! ATK meningkat +5 (Total ATK sekarang: %d)!\n",
+                       p->name, total_atk + 5);
                 player_acted = 1;
+
+            } else if (choice == 3) {
+                // Heavy Slash (Spesial - 1x per sesi)
+                if (special_used) {
+                    printf(">> Heavy Slash hanya bisa digunakan 1 kali per pertarungan! Pilih aksi lain.\n");
+                    pauseScreen();
+                    continue;
+                }
+
+                int dmg = calculateDamage((int)(total_atk * 1.8), m.def, 0);
+                m.hp -= dmg;
+                if (m.hp < 0) m.hp = 0;
+
+                printf(">> [HEAVY SLASH] Serangan pamungkas %s menghantam %s sebesar %d damage!\n",
+                       p->name, m.name, dmg);
+                special_used = 1;
+                player_acted = 1;
+
+            } else if (choice == 4) {
+                if (usePotionInCombat(p)) {
+                    player_acted = 1;
+                } else {
+                    pauseScreen();
+                    continue;
+                }
+
+            } else if (choice == 5) {
+                if ((rand() % 100) < 50) {
+                    printf(">> Kamu berhasil melarikan diri dari %s!\n", m.name);
+                    pauseScreen();
+                    return COMBAT_RUN;
+                } else {
+                    printf(">> Gagal kabur! %s menghadang jalanmu!\n", m.name);
+                    player_acted = 1;
+                }
+            }
+        }
+        // --- ALUR MAGE & ROGUE (SEMENTARA) ---
+        else {
+            if (choice == 1) {
+                int is_crit = (rand() % 100) < 20;
+                int dmg = calculateDamage(total_atk, m.def, is_crit);
+                m.hp -= dmg;
+                if (m.hp < 0) m.hp = 0;
+
+                if (is_crit) {
+                    printf(">> CRITICAL HIT! %s menyerang %s sebesar %d damage!\n", p->name, m.name, dmg);
+                } else {
+                    printf(">> %s menyerang %s sebesar %d damage!\n", p->name, m.name, dmg);
+                }
+                player_acted = 1;
+
+            } else if (choice == 2) {
+                if (skill_cooldown > 0) {
+                    printf(">> Skill masih cooldown (%d giliran lagi)! Pilih aksi lain.\n", skill_cooldown);
+                    pauseScreen();
+                    continue;
+                }
+
+                int dmg = 0;
+                if (strcmp(p->class_type, "Mage") == 0) {
+                    dmg = calculateDamage((int)(total_atk * 1.6), m.def / 2, 0);
+                    printf(">> [FIREBALL] Bola api membakar %s sebesar %d damage!\n", m.name, dmg);
+                } else {
+                    dmg = calculateDamage(total_atk, m.def, 1);
+                    printf(">> [BACKSTAB] Serangan titik lemah %s menghasilkan %d CRITICAL damage!\n", m.name, dmg);
+                }
+
+                m.hp -= dmg;
+                if (m.hp < 0) m.hp = 0;
+                skill_cooldown = 3;
+                player_acted = 1;
+
+            } else if (choice == 3) {
+                if (usePotionInCombat(p)) {
+                    player_acted = 1;
+                } else {
+                    pauseScreen();
+                    continue;
+                }
+
+            } else if (choice == 4) {
+                if ((rand() % 100) < 50) {
+                    printf(">> Kamu berhasil melarikan diri dari %s!\n", m.name);
+                    pauseScreen();
+                    return COMBAT_RUN;
+                } else {
+                    printf(">> Gagal kabur! %s menghadang jalanmu!\n", m.name);
+                    player_acted = 1;
+                }
             }
         }
 
-        // Cek apakah monster sudah kalah setelah diserang player
+        // Cek apakah monster kalah
         if (m.hp <= 0) {
             printf("\n==========================================\n");
             printf("  KEMENANGAN! %s telah dikalahkan!\n", m.name);
@@ -130,7 +207,6 @@ int startCombat(struct Player *p, struct Monster m) {
             p->gold += m.gold_reward;
             p->exp += m.exp_reward;
 
-            // Panggil fungsi dari player.c untuk cek naik level
             checkLevelUp(p);
             pauseScreen();
             return COMBAT_WIN;
@@ -138,7 +214,7 @@ int startCombat(struct Player *p, struct Monster m) {
 
         // --- GILIRAN MONSTER ---
         if (player_acted) {
-            int monster_crit = (rand() % 100) < 10; // Peluang crit monster 10%
+            int monster_crit = (rand() % 100) < 10;
             int monster_dmg = calculateDamage(m.atk, total_def, monster_crit);
             p->hp -= monster_dmg;
             if (p->hp < 0) p->hp = 0;
@@ -157,7 +233,6 @@ int startCombat(struct Player *p, struct Monster m) {
         }
     }
 
-    // Jika keluar dari loop karena HP Player habis
     if (p->hp <= 0) {
         clearScreen();
         printf("==========================================\n");
