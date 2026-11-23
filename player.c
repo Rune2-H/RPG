@@ -108,7 +108,7 @@ void checkLevelUp(struct Player *p) {
         if (strcmp(p->class_type, "Warrior") == 0) {
             p->max_hp += 25;
             p->base_atk += 4;
-            p->base_def += 3;
+            p->base_def += 12;
         } else if (strcmp(p->class_type, "Mage") == 0) {
             p->max_hp += 15;
             p->base_atk += 7;
