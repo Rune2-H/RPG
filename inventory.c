@@ -14,7 +14,7 @@
 static struct Item shopCatalog[] = {
     {101, "Small Health Potion", ITEM_POTION, 40,  25,  1},
     {102, "Mega Health Potion",  ITEM_POTION, 100, 60,  1},
-    {201, "Iron word",     ITEM_WEAPON, 8,   120, 1},
+    {201, "Iron Sword",     ITEM_WEAPON, 8,   120, 1},
     {202, "Steel Claymore",      ITEM_WEAPON, 16,  280, 1},
     {301, "Leather Tunic",       ITEM_ARMOR,  5,   1000, 1},
     {302, "Knight Chainmail",    ITEM_ARMOR,  12,  250, 1}

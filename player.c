@@ -84,9 +84,9 @@ void createCharacter(struct Player *p) {
 
     // Slot 2: Potion Awal (2 buah dalam 1 slot stack)
     p->inventory[2].item_id = 101;
-    strcpy(p->inventory[2].name, "Small Potion");
+    strcpy(p->inventory[2].name, "Small Health Potion");
     p->inventory[2].type = ITEM_POTION;
-    p->inventory[2].stat_value = 30; // Pulihkan 30 HP
+    p->inventory[2].stat_value = 40; // Pulihkan 40 HP
     p->inventory[2].price = 15;
     p->inventory[2].quantity = 2;
 
