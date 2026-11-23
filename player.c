@@ -37,7 +37,7 @@ void createCharacter(struct Player *p) {
     // 4. Set Stat & Senjata Pemula berdasarkan Class (Slot 0)
     if (choice == 1) {
         strcpy(p->class_type, "Warrior");
-        p->max_hp = 120;
+        p->max_hp = 150;
         p->base_atk = 15;
         p->base_def = 10;
 
