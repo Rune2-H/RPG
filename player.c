@@ -46,7 +46,7 @@ void createCharacter(struct Player *p) {
     // Set Stat berdasarkan Class yang dipilih
     if (choice == 1) {
         strcpy(p->class_type, "Warrior");
-        p->max_hp = 120;
+        p->max_hp = 150;
         p->base_atk = 15;
         p->base_def = 10;
     } else if (choice == 2) {
