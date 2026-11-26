@@ -31,7 +31,7 @@ void createCharacter(struct Player *p) {
     p->player_id = 1;
     p->level = 1;
     p->exp = 0;
-    p->gold = 100;
+    p->gold = 0;
     p->boss_rush_unlocked = 0;
 
     // Atur stat dasar dan senjata awal sesuai class
