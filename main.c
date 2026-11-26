@@ -49,8 +49,8 @@ void runGameLoop(struct Player *hero) {
         printf("              PETUALANGAN TEXT RPG                \n");
         printf("==================================================\n");
         printf(" %s (%s) | Lv.%d | HP: %d/%d | Gold: %d G\n",
-               hero->name, hero->class_type, hero->level,
-               hero->hp, hero->max_hp, hero->gold);
+            hero->name, hero->class_type, hero->level,
+            hero->hp, hero->max_hp, hero->gold);
         printf("==================================================\n");
         printf(" 1. Jelajah Dunia (Explore)\n");
         printf(" 2. Buka Tas (Inventory)\n");
@@ -124,12 +124,12 @@ int main() {
             case 2:
                 if (loadGame(&hero) == 1) {
                     printf("\n>> Save file ditemukan! Selamat datang kembali, %s (Lv.%d)!\n",
-                           hero.name, hero.level);
+                        hero.name, hero.level);
                     pauseScreen();
                     runGameLoop(&hero);
                 } else {
                     printf("\n>> File '%s' tidak ditemukan atau rusak! Silakan mulai New Game.\n",
-                           SAVE_FILE);
+                        SAVE_FILE);
                     pauseScreen();
                 }
                 break;
