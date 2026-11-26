@@ -156,8 +156,8 @@ void exploreAreaByDirection(struct Player *p, int area_type) {
 
         int acak = rand() % 100;
 
-        if (acak < 45) {
-            // 45% peluang bertemu monster
+        if (acak < 50) {
+            // 50% peluang bertemu monster
             struct Monster musuh;
             if (area_type == 2) {
                 musuh = spawnForestMonster();
@@ -174,8 +174,8 @@ void exploreAreaByDirection(struct Player *p, int area_type) {
                 return;
             }
 
-        } else if (acak < 70) {
-            // 25% peluang menemukan chest
+        } else if (acak < 55) {
+            // 5% peluang menemukan chest
             int acak_chest = rand() % 100;
             int dapat_gold = 0;
             if (area_type == 2) {
@@ -208,8 +208,8 @@ void exploreAreaByDirection(struct Player *p, int area_type) {
             printf("==================================================\n");
             pauseScreen();
 
-        } else if (acak < 80) {
-            // 10% peluang menemukan mata air pemulih HP
+        } else if (acak < 75) {
+            // 20% peluang menemukan mata air pemulih HP
             int jumlah_heal = 30;
             if (area_type == 2) {
                 jumlah_heal = 15;
@@ -227,7 +227,7 @@ void exploreAreaByDirection(struct Player *p, int area_type) {
             pauseScreen();
 
         } else {
-            // 20% peluang aman
+            // 25% peluang aman
             if (area_type == 2) {
                 printf(".. Hanya suara angin dan dedaunan bergesekan. Jalur %s aman.\n",
                        nama_arah[arah - 1]);
