@@ -1,17 +1,7 @@
 #include "game.h"
 
-// ============================================================================
-// MODUL 6: main.c (Integrasi Seluruh Modul, UI Terminal & Validasi Input)
-// ============================================================================
-
-// --- IMPLEMENTASI HELPER UI & VALIDASI INPUT (Dideklarasikan di game.h) ---
-
 void clearScreen() {
-#ifdef _WIN32
-    system("cls");
-#else
-    system("clear");
-#endif
+    system("cls || clear");
 }
 
 void pauseScreen() {
@@ -19,37 +9,35 @@ void pauseScreen() {
     getchar();
 }
 
+// Validasi input angka agar program tidak error kalau user ketik huruf
 int getValidIntInput(int min, int max) {
     int input;
     char ch;
 
     while (1) {
         if (scanf("%d", &input) == 1) {
-            // Pastikan tidak ada karakter sampah setelah angka (misal: "1abc")
             ch = getchar();
-            if (ch == '\n' || ch == EOF) {
+            if (ch == '\n') {
                 if (input >= min && input <= max) {
                     return input;
                 }
             } else {
-                // Bersihkan sisa karakter di buffer jika format salah
+                // Buang sisa karakter jika input tercampur huruf (misal: 1abc)
                 while (getchar() != '\n');
             }
         } else {
-            // Bersihkan buffer jika user mengetik huruf/simbol
+            // Buang input jika bukan angka
             while (getchar() != '\n');
         }
         printf("Input tidak valid! Masukkan angka antara %d - %d: ", min, max);
     }
 }
 
-// --- ALUR MENU UTAMA DALAM GAME (GAME LOOP) ---
+// Loop menu utama saat sedang bermain
+void runGameLoop(struct Player *hero) {
+    int bermain = 1;
 
-static void runGameLoop(struct Player *hero) {
-    int playing = 1;
-
-    while (playing) {
-        // Cek apakah hero mati saat menjelajah / bertarung
+    while (bermain == 1) {
         if (hero->hp <= 0) {
             printf("\n>> Petualangan %s telah berakhir. Kembali ke Menu Awal...\n", hero->name);
             pauseScreen();
@@ -61,8 +49,8 @@ static void runGameLoop(struct Player *hero) {
         printf("              PETUALANGAN TEXT RPG                \n");
         printf("==================================================\n");
         printf(" %s (%s) | Lv.%d | HP: %d/%d | Gold: %d G\n",
-            hero->name, hero->class_type, hero->level,
-            hero->hp, hero->max_hp, hero->gold);
+               hero->name, hero->class_type, hero->level,
+               hero->hp, hero->max_hp, hero->gold);
         printf("==================================================\n");
         printf(" 1. Jelajah Dunia (Explore)\n");
         printf(" 2. Buka Tas (Inventory)\n");
@@ -74,26 +62,26 @@ static void runGameLoop(struct Player *hero) {
         printf("==================================================\n");
         printf("Pilih aksi (1-7): ");
 
-        int choice = getValidIntInput(1, 7);
+        int pilihan = getValidIntInput(1, 7);
 
-        switch (choice) {
+        switch (pilihan) {
             case 1:
-                exploreWorld(hero);      // Modul 4: world.c
+                exploreWorld(hero);
                 break;
             case 2:
-                openInventory(hero);     // Modul 3: inventory.c
+                openInventory(hero);
                 break;
             case 3:
-                openShop(hero);          // Modul 3: inventory.c
+                openShop(hero);
                 break;
             case 4:
-                showStatus(*hero);       // Modul 1: player.c
+                showStatus(*hero);
                 break;
             case 5:
-                restAtVillage(hero);     // Modul 4: world.c
+                restAtVillage(hero);
                 break;
             case 6:
-                if (saveGame(*hero)) {   // Modul 5: saveload.c
+                if (saveGame(*hero) == 1) {
                     printf("\n>> Progres permainan berhasil disimpan ke '%s'!\n", SAVE_FILE);
                 }
                 pauseScreen();
@@ -101,22 +89,19 @@ static void runGameLoop(struct Player *hero) {
             case 7:
                 printf("\nPastikan kamu sudah Save sebelum keluar! Kembali ke Menu Awal...\n");
                 pauseScreen();
-                playing = 0;
+                bermain = 0;
                 break;
         }
     }
 }
 
-// --- ENTRY POINT PROGRAM ---
-
 int main() {
-    // Inisialisasi seed random satu kali untuk seluruh game (combat & world)
-    srand((unsigned int)time(NULL));
+    srand(time(NULL));
 
     struct Player hero;
-    int app_running = 1;
+    int program_jalan = 1;
 
-    while (app_running) {
+    while (program_jalan == 1) {
         clearScreen();
         printf("==================================================\n");
         printf("         CHRONICLES OF ALGORITMA (MINI RPG)       \n");
@@ -128,23 +113,23 @@ int main() {
         printf("==================================================\n");
         printf("Pilihan (1-3): ");
 
-        int menu_choice = getValidIntInput(1, 3);
+        int menu = getValidIntInput(1, 3);
 
-        switch (menu_choice) {
+        switch (menu) {
             case 1:
-                createCharacter(&hero);  // Modul 1: player.c
+                createCharacter(&hero);
                 runGameLoop(&hero);
                 break;
 
             case 2:
-                if (loadGame(&hero)) {   // Modul 5: saveload.c
+                if (loadGame(&hero) == 1) {
                     printf("\n>> Save file ditemukan! Selamat datang kembali, %s (Lv.%d)!\n",
-                        hero.name, hero.level);
+                           hero.name, hero.level);
                     pauseScreen();
                     runGameLoop(&hero);
                 } else {
                     printf("\n>> File '%s' tidak ditemukan atau rusak! Silakan mulai New Game.\n",
-                        SAVE_FILE);
+                           SAVE_FILE);
                     pauseScreen();
                 }
                 break;
@@ -152,7 +137,7 @@ int main() {
             case 3:
                 clearScreen();
                 printf("Terima kasih telah bermain! Sampai jumpa di Semester 3!\n");
-                app_running = 0;
+                program_jalan = 0;
                 break;
         }
     }

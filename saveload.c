@@ -1,9 +1,5 @@
 #include "game.h"
 
-// ============================================================================
-// MODUL 5: saveload.c (Save & Load Data via File Handling)
-// ============================================================================
-
 int saveGame(struct Player p) {
     FILE *fp = fopen(SAVE_FILE, "w");
     if (fp == NULL) {
@@ -11,19 +7,19 @@ int saveGame(struct Player p) {
         return 0;
     }
 
-    // 1. Tulis Identitas Karakter (menggunakan titik koma ';' agar nama ber-spasi aman)
+    // Simpan identitas karakter (pakai titik koma biar nama yang ada spasi aman)
     fprintf(fp, "%d;%s;%s\n", p.player_id, p.name, p.class_type);
 
-    // 2. Tulis Statistik & Progresi
+    // Simpan stat utama dan gold
     fprintf(fp, "%d %d %d %d %d %d %d\n",
             p.level, p.exp, p.hp, p.max_hp, p.base_atk, p.base_def, p.gold);
 
-    // 3. Tulis Status Equipment & Jumlah Item di Tas
+    // Simpan equipment yang dipakai dan jumlah item
     fprintf(fp, "%d %d %d %d %d\n",
             p.equipped_weapon_id, p.equipped_armor_id,
             p.bonus_atk, p.bonus_def, p.item_count);
 
-    // 4. Tulis seluruh isi Inventory (1 baris per item)
+    // Simpan semua item di tas
     for (int i = 0; i < p.item_count; i++) {
         fprintf(fp, "%d;%s;%d;%d;%d;%d\n",
                 p.inventory[i].item_id,
@@ -34,8 +30,7 @@ int saveGame(struct Player p) {
                 p.inventory[i].quantity);
     }
 
-    // 5. Tulis progres mode tambahan (baris ini opsional saat load,
-    //    jadi save lama yang belum punya baris ini tetap bisa dibaca)
+    // Simpan status mode Boss Rush
     fprintf(fp, "%d\n", p.boss_rush_unlocked);
 
     fclose(fp);
@@ -45,52 +40,99 @@ int saveGame(struct Player p) {
 int loadGame(struct Player *p) {
     FILE *fp = fopen(SAVE_FILE, "r");
     if (fp == NULL) {
-        return 0; // File savegame.txt belum ada
+        return 0;
     }
 
-    // 1. Baca Identitas Karakter (scanset %[^;] membaca teks sampai ketemu ';')
-    if (fscanf(fp, "%d;%49[^;];%19[^\n]\n",
-            &p->player_id, p->name, p->class_type) != 3) {
+    char baris[200];
+
+    // 1. Baca baris identitas karakter (id;nama;class)
+    if (fgets(baris, sizeof(baris), fp) == NULL) {
         fclose(fp);
-        return 0; // Format file rusak
+        return 0;
+    }
+    int panjang = strlen(baris);
+    if (panjang > 0 && baris[panjang - 1] == '\n') {
+        baris[panjang - 1] = '\0';
     }
 
-    // 2. Baca Statistik & Progresi
+    char *potong = strtok(baris, ";");
+    if (potong == NULL) {
+        fclose(fp);
+        return 0;
+    }
+    p->player_id = atoi(potong);
+
+    potong = strtok(NULL, ";");
+    if (potong == NULL) {
+        fclose(fp);
+        return 0;
+    }
+    strcpy(p->name, potong);
+
+    potong = strtok(NULL, ";");
+    if (potong == NULL) {
+        fclose(fp);
+        return 0;
+    }
+    strcpy(p->class_type, potong);
+
+    // 2. Baca statistik dan progress
     if (fscanf(fp, "%d %d %d %d %d %d %d\n",
-            &p->level, &p->exp, &p->hp, &p->max_hp,
-            &p->base_atk, &p->base_def, &p->gold) != 7) {
+               &p->level, &p->exp, &p->hp, &p->max_hp,
+               &p->base_atk, &p->base_def, &p->gold) != 7) {
         fclose(fp);
         return 0;
     }
 
-    // 3. Baca Status Equipment & Jumlah Item di Tas
+    // 3. Baca equipment dan jumlah item di tas
     if (fscanf(fp, "%d %d %d %d %d\n",
-            &p->equipped_weapon_id, &p->equipped_armor_id,
-            &p->bonus_atk, &p->bonus_def, &p->item_count) != 5) {
+               &p->equipped_weapon_id, &p->equipped_armor_id,
+               &p->bonus_atk, &p->bonus_def, &p->item_count) != 5) {
         fclose(fp);
         return 0;
     }
 
-    // Pengaman agar tidak melebihi kapasitas array
     if (p->item_count > MAX_INVENTORY) {
         p->item_count = MAX_INVENTORY;
     }
 
-    // 4. Baca seluruh isi Inventory
+    // 4. Baca daftar item di inventory
     for (int i = 0; i < p->item_count; i++) {
-        if (fscanf(fp, "%d;%49[^;];%d;%d;%d;%d\n",
-                &p->inventory[i].item_id,
-                p->inventory[i].name,
-                &p->inventory[i].type,
-                &p->inventory[i].stat_value,
-                &p->inventory[i].price,
-                &p->inventory[i].quantity) != 6) {
+        if (fgets(baris, sizeof(baris), fp) == NULL) {
             fclose(fp);
             return 0;
         }
+        panjang = strlen(baris);
+        if (panjang > 0 && baris[panjang - 1] == '\n') {
+            baris[panjang - 1] = '\0';
+        }
+
+        potong = strtok(baris, ";");
+        if (potong == NULL) { fclose(fp); return 0; }
+        p->inventory[i].item_id = atoi(potong);
+
+        potong = strtok(NULL, ";");
+        if (potong == NULL) { fclose(fp); return 0; }
+        strcpy(p->inventory[i].name, potong);
+
+        potong = strtok(NULL, ";");
+        if (potong == NULL) { fclose(fp); return 0; }
+        p->inventory[i].type = atoi(potong);
+
+        potong = strtok(NULL, ";");
+        if (potong == NULL) { fclose(fp); return 0; }
+        p->inventory[i].stat_value = atoi(potong);
+
+        potong = strtok(NULL, ";");
+        if (potong == NULL) { fclose(fp); return 0; }
+        p->inventory[i].price = atoi(potong);
+
+        potong = strtok(NULL, ";");
+        if (potong == NULL) { fclose(fp); return 0; }
+        p->inventory[i].quantity = atoi(potong);
     }
 
-    // 5. Baca progres mode tambahan (opsional; save lama tidak punya baris ini)
+    // 5. Baca status Boss Rush (opsional untuk file save lama)
     p->boss_rush_unlocked = 0;
     fscanf(fp, "%d", &p->boss_rush_unlocked);
 

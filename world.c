@@ -1,48 +1,102 @@
 #include "game.h"
 
-// ============================================================================
-// MODUL 4: world.c (Peta, Jelajah Arah, Random Encounter & Istirahat)
-// ============================================================================
+#define INN_COST 20
+#define BOSS_RUSH_NAMES_COUNT 6
 
-// Helper internal: Membuat monster berdasarkan tingkat bahaya lokasi
-static struct Monster spawnForestMonster() {
-    int pick = rand() % 2;
-    if (pick == 0) {
-        // {monster_id, name, level_req, hp, max_hp, atk, def, gold_reward, exp_reward}
-        struct Monster m = {101, "Forest Slime", 1, 45, 45, 11, 2, 25, 35};
-        return m;
+// Buat monster Hutan Rimba secara acak
+struct Monster spawnForestMonster() {
+    struct Monster m;
+    int pilih = rand() % 2;
+
+    if (pilih == 0) {
+        m.monster_id = 101;
+        strcpy(m.name, "Forest Slime");
+        m.level_req = 1;
+        m.max_hp = 45;
+        m.hp = 45;
+        m.atk = 11;
+        m.def = 2;
+        m.gold_reward = 25;
+        m.exp_reward = 35;
     } else {
-        struct Monster m = {102, "Wild Goblin", 2, 65, 65, 15, 4, 45, 55};
-        return m;
+        m.monster_id = 102;
+        strcpy(m.name, "Wild Goblin");
+        m.level_req = 2;
+        m.max_hp = 65;
+        m.hp = 65;
+        m.atk = 15;
+        m.def = 4;
+        m.gold_reward = 45;
+        m.exp_reward = 55;
     }
+    return m;
 }
 
-static struct Monster spawnCaveMonster() {
-    int pick = rand() % 2;
-    if (pick == 0) {
-        struct Monster m = {201, "Skeleton Warrior", 3, 100, 100, 22, 8, 80, 95};
-        return m;
+// Buat monster Gua Kegelapan secara acak
+struct Monster spawnCaveMonster() {
+    struct Monster m;
+    int pilih = rand() % 2;
+
+    if (pilih == 0) {
+        m.monster_id = 201;
+        strcpy(m.name, "Skeleton Warrior");
+        m.level_req = 3;
+        m.max_hp = 100;
+        m.hp = 100;
+        m.atk = 22;
+        m.def = 8;
+        m.gold_reward = 80;
+        m.exp_reward = 95;
     } else {
-        struct Monster m = {202, "Cave Troll", 4, 140, 140, 28, 12, 120, 140};
-        return m;
+        m.monster_id = 202;
+        strcpy(m.name, "Cave Troll");
+        m.level_req = 4;
+        m.max_hp = 140;
+        m.hp = 140;
+        m.atk = 28;
+        m.def = 12;
+        m.gold_reward = 120;
+        m.exp_reward = 140;
     }
+    return m;
 }
 
-static struct Monster spawnBossMonster() {
-    struct Monster boss = {999, "Malakor, Raja Iblis", 6, 260, 260, 38, 16, 500, 400};
+// Buat Final Boss
+struct Monster spawnBossMonster() {
+    struct Monster boss;
+    boss.monster_id = 999;
+    strcpy(boss.name, "Malakor, Raja Iblis");
+    boss.level_req = 6;
+    boss.max_hp = 260;
+    boss.hp = 260;
+    boss.atk = 38;
+    boss.def = 16;
+    boss.gold_reward = 500;
+    boss.exp_reward = 400;
     return boss;
 }
 
-// Helper internal: Memasukkan Potion gratis dari Chest ke tas player
-static int giveChestPotion(struct Player *p, int is_mega) {
+// Masukkan potion hadiah chest ke tas player
+int giveChestPotion(struct Player *p, int is_mega) {
     struct Item potion;
-    if (is_mega) {
-        potion = (struct Item){102, "Mega Health Potion", ITEM_POTION, 100, 60, 1};
+
+    if (is_mega == 1) {
+        potion.item_id = 102;
+        strcpy(potion.name, "Mega Health Potion");
+        potion.type = ITEM_POTION;
+        potion.stat_value = 100;
+        potion.price = 60;
+        potion.quantity = 1;
     } else {
-        potion = (struct Item){101, "Small Health Potion", ITEM_POTION, 40, 25, 1};
+        potion.item_id = 101;
+        strcpy(potion.name, "Small Health Potion");
+        potion.type = ITEM_POTION;
+        potion.stat_value = 40;
+        potion.price = 25;
+        potion.quantity = 1;
     }
 
-    // Cek apakah sudah ada di tas untuk ditumpuk (stack)
+    // Cek apakah item sudah ada di tas untuk ditumpuk
     for (int i = 0; i < p->item_count; i++) {
         if (p->inventory[i].item_id == potion.item_id) {
             p->inventory[i].quantity += 1;
@@ -50,25 +104,32 @@ static int giveChestPotion(struct Player *p, int is_mega) {
         }
     }
 
-    // Jika belum ada, taruh di slot baru jika muat
+    // Jika belum ada, masukkan ke slot kosong jika masih muat
     if (p->item_count < MAX_INVENTORY) {
         p->inventory[p->item_count] = potion;
         p->item_count++;
         return 1;
     }
-    return 0; // Tas penuh
+
+    return 0;
 }
 
-// Helper internal: Sub-menu eksplorasi berdasarkan arah mata angin
-static void exploreAreaByDirection(struct Player *p, int area_type) {
-    const char *area_name = (area_type == 2) ? "Hutan Rimba" : "Gua Kegelapan";
-    const char *dir_names[4] = {"Utara", "Selatan", "Timur", "Barat"};
-    int steps = 0;
+// Eksplorasi area berdasarkan pilihan arah mata angin
+void exploreAreaByDirection(struct Player *p, int area_type) {
+    char nama_area[30];
+    if (area_type == 2) {
+        strcpy(nama_area, "Hutan Rimba");
+    } else {
+        strcpy(nama_area, "Gua Kegelapan");
+    }
+
+    char nama_arah[4][15] = {"Utara", "Selatan", "Timur", "Barat"};
+    int langkah = 0;
 
     while (p->hp > 0) {
         clearScreen();
         printf("==================================================\n");
-        printf("  LOKASI: %-15s | Langkah ke-%d\n", area_name, steps);
+        printf("  LOKASI: %-15s | Langkah ke-%d\n", nama_area, langkah);
         printf("  %s (Lv.%d) | HP: %d/%d | Gold: %d G\n",
                p->name, p->level, p->hp, p->max_hp, p->gold);
         printf("==================================================\n");
@@ -77,52 +138,69 @@ static void exploreAreaByDirection(struct Player *p, int area_type) {
         printf(" 2. Melangkah ke Selatan\n");
         printf(" 3. Melangkah ke Timur\n");
         printf(" 4. Melangkah ke Barat\n");
-        printf(" 0. Keluar dari %s (Kembali ke Peta Dunia)\n", area_name);
+        printf(" 0. Keluar dari %s (Kembali ke Peta Dunia)\n", nama_area);
         printf("==================================================\n");
         printf("Pilihan arah (0-4): ");
 
-        int dir = getValidIntInput(0, 4);
-        if (dir == 0) {
-            printf("\n>> Kamu berjalan keluar meninggalkan %s...\n", area_name);
+        int arah = getValidIntInput(0, 4);
+        if (arah == 0) {
+            printf("\n>> Kamu berjalan keluar meninggalkan %s...\n", nama_area);
             pauseScreen();
             break;
         }
 
-        steps++;
+        langkah++;
         clearScreen();
         printf(">> Kamu melangkah menuju arah %s di dalam %s...\n\n",
-               dir_names[dir - 1], area_name);
+               nama_arah[arah - 1], nama_area);
 
-        int roll = rand() % 100; // Acak kejadian 0 - 99
+        int acak = rand() % 100;
 
-        if (roll < 45) {
-            // 45% Peluang: Ketemu Monster
-            struct Monster enemy = (area_type == 2) ? spawnForestMonster() : spawnCaveMonster();
-            printf("!! WASPADA !! Dari arah %s muncul %s (Lv.%d)!\n",
-                   dir_names[dir - 1], enemy.name, enemy.level_req);
-            pauseScreen();
-
-            int result = startCombat(p, enemy, 1); // encounter biasa: boleh kabur
-            if (result == COMBAT_LOSE) {
-                return; // Kembali ke exploreWorld -> main.c untuk Game Over
+        if (acak < 45) {
+            // 45% peluang bertemu monster
+            struct Monster musuh;
+            if (area_type == 2) {
+                musuh = spawnForestMonster();
+            } else {
+                musuh = spawnCaveMonster();
             }
 
-        } else if (roll < 70) {
-            // 25% Peluang: Menemukan Treasure Chest (Bisa Gold atau Gold + Potion)
-            int chest_type = rand() % 100;
-            int found_gold = (area_type == 2) ? (15 + rand() % 26) : (40 + rand() % 51);
-            p->gold += found_gold;
+            printf("!! WASPADA !! Dari arah %s muncul %s (Lv.%d)!\n",
+                   nama_arah[arah - 1], musuh.name, musuh.level_req);
+            pauseScreen();
+
+            int hasil = startCombat(p, musuh, 1);
+            if (hasil == COMBAT_LOSE) {
+                return;
+            }
+
+        } else if (acak < 70) {
+            // 25% peluang menemukan chest
+            int acak_chest = rand() % 100;
+            int dapat_gold = 0;
+            if (area_type == 2) {
+                dapat_gold = 15 + (rand() % 26);
+            } else {
+                dapat_gold = 40 + (rand() % 51);
+            }
+            p->gold += dapat_gold;
 
             printf("==================================================\n");
             printf("  [CHEST DITEMUKAN!] Kamu membuka peti harta karun!\n");
-            printf("  >> Mendapatkan %d Gold! (Total: %d G)\n", found_gold, p->gold);
+            printf("  >> Mendapatkan %d Gold! (Total: %d G)\n", dapat_gold, p->gold);
 
-            if (chest_type < 45) {
-                // 45% isi chest juga berisi Potion tambahan
-                int is_mega = (area_type == 3);
-                if (giveChestPotion(p, is_mega)) {
-                    printf("  >> Bonus item: 1x %s masuk ke tas!\n",
-                           is_mega ? "Mega Health Potion" : "Small Health Potion");
+            if (acak_chest < 45) {
+                int is_mega = 0;
+                if (area_type == 3) {
+                    is_mega = 1;
+                }
+
+                if (giveChestPotion(p, is_mega) == 1) {
+                    if (is_mega == 1) {
+                        printf("  >> Bonus item: 1x Mega Health Potion masuk ke tas!\n");
+                    } else {
+                        printf("  >> Bonus item: 1x Small Health Potion masuk ke tas!\n");
+                    }
                 } else {
                     printf("  >> Ada Potion di dalam peti, tapi tasmu penuh!\n");
                 }
@@ -130,26 +208,32 @@ static void exploreAreaByDirection(struct Player *p, int area_type) {
             printf("==================================================\n");
             pauseScreen();
 
-        } else if (roll < 80) {
-            // 10% Peluang: Mata Air / Tempat Istirahat Singkat (Pulih sedikit HP)
-            int heal_amt = (area_type == 2) ? 15 : 30;
-            int old_hp = p->hp;
-            p->hp += heal_amt;
-            if (p->hp > p->max_hp) p->hp = p->max_hp;
+        } else if (acak < 80) {
+            // 10% peluang menemukan mata air pemulih HP
+            int jumlah_heal = 30;
+            if (area_type == 2) {
+                jumlah_heal = 15;
+            }
+
+            int hp_lama = p->hp;
+            p->hp += jumlah_heal;
+            if (p->hp > p->max_hp) {
+                p->hp = p->max_hp;
+            }
 
             printf("++ Kamu menemukan mata air jernih di balik bebatuan.\n");
             printf("   Kamu meminumnya dan HP pulih +%d (%d -> %d).\n",
-                   p->hp - old_hp, old_hp, p->hp);
+                   p->hp - hp_lama, hp_lama, p->hp);
             pauseScreen();
 
         } else {
-            // 20% Peluang: Aman / Tidak ketemu apa-apa
+            // 20% peluang aman
             if (area_type == 2) {
                 printf(".. Hanya suara angin dan dedaunan bergesekan. Jalur %s aman.\n",
-                       dir_names[dir - 1]);
+                       nama_arah[arah - 1]);
             } else {
                 printf(".. Lorong gua di arah %s gelap dan sunyi. Tidak ada apa-apa di sini.\n",
-                       dir_names[dir - 1]);
+                       nama_arah[arah - 1]);
             }
             pauseScreen();
         }
@@ -158,7 +242,6 @@ static void exploreAreaByDirection(struct Player *p, int area_type) {
 
 void restAtVillage(struct Player *p) {
     clearScreen();
-    const int INN_COST = 20;
 
     printf("==================================================\n");
     printf("               PENGINAPAN DESA                    \n");
@@ -178,8 +261,8 @@ void restAtVillage(struct Player *p) {
     printf("2. Kembali\n");
     printf("Pilihan (1-2): ");
 
-    int choice = getValidIntInput(1, 2);
-    if (choice == 1) {
+    int pilihan = getValidIntInput(1, 2);
+    if (pilihan == 1) {
         if (p->gold < INN_COST) {
             printf("\n>> Gold tidak cukup! (Butuh %d G, kamu punya %d G)\n", INN_COST, p->gold);
         } else {
@@ -192,22 +275,22 @@ void restAtVillage(struct Player *p) {
     }
 }
 
-// ============================================================================
-// MODE BOSS RUSH (INFINITE)
-// ============================================================================
-
-// Boss gelombang ke-`wave`; makin tinggi gelombang, makin kejam.
-static struct Monster spawnBossRushMonster(int wave) {
-    static const char *names[] = {
-        "Malakor's Echo", "Crimson Revenant", "Ashen Warlord",
-        "Void Herald", "Twin of the Abyss", "The Unnamed King"
+// Buat boss gelombang ke-wave untuk mode Boss Rush
+struct Monster spawnBossRushMonster(int wave) {
+    char daftar_nama[BOSS_RUSH_NAMES_COUNT][30] = {
+        "Malakor's Echo",
+        "Crimson Revenant",
+        "Ashen Warlord",
+        "Void Herald",
+        "Twin of the Abyss",
+        "The Unnamed King"
     };
 
     struct Monster m;
-    int idx = (wave - 1) % (int)(sizeof(names) / sizeof(names[0]));
+    int idx = (wave - 1) % BOSS_RUSH_NAMES_COUNT;
 
     m.monster_id = 9000 + wave;
-    strcpy(m.name, names[idx]);
+    strcpy(m.name, daftar_nama[idx]);
     m.level_req = 5 + wave;
     m.max_hp = 260 + 70 * (wave - 1);
     m.hp = m.max_hp;
@@ -239,8 +322,8 @@ void startBossRush(struct Player *p) {
     printf(" 2. Batal (kembali ke Peta Dunia)\n");
     printf("Pilihan (1-2): ");
 
-    int confirm = getValidIntInput(1, 2);
-    if (confirm != 1) {
+    int konfirmasi = getValidIntInput(1, 2);
+    if (konfirmasi != 1) {
         return;
     }
 
@@ -248,7 +331,6 @@ void startBossRush(struct Player *p) {
 
     while (1) {
         wave++;
-
         struct Monster boss = spawnBossRushMonster(wave);
 
         clearScreen();
@@ -257,10 +339,9 @@ void startBossRush(struct Player *p) {
         printf("==================================================\n");
         pauseScreen();
 
-        int result = startCombat(p, boss, 0); // 0 = kabur dikunci
+        int hasil = startCombat(p, boss, 0);
 
-        if (result == COMBAT_LOSE) {
-            // Karakter gugur: save dihapus, tidak ada yang tersisa
+        if (hasil == COMBAT_LOSE) {
             clearScreen();
             printf("==================================================\n");
             printf("         KARAKTER DIHAPUS PERMANEN                 \n");
@@ -298,32 +379,32 @@ void exploreWorld(struct Player *p) {
         printf(" 2. Hutan Rimba     [Lv. 1 - 2]  - Jelajah Arah, Chest & Monster Ringan\n");
         printf(" 3. Gua Kegelapan   [Lv. 3 - 4]  - Jelajah Arah, Chest & Monster Kuat\n");
         printf(" 4. Kastil Boss     [Lv. 5+]     - Lawan Raja Iblis (Final Boss)\n");
-        if (p->boss_rush_unlocked) {
+        if (p->boss_rush_unlocked == 1) {
             printf(" 5. BOSS RUSH       [MODE BARU]  - Gelombang boss tanpa akhir (mati = hapus)\n");
         }
         printf(" 0. Kembali ke Menu Utama\n");
         printf("==================================================\n");
 
-        if (p->boss_rush_unlocked) {
+        int batas_pilihan = 4;
+        if (p->boss_rush_unlocked == 1) {
+            batas_pilihan = 5;
             printf("Pilih tujuan jelajah (0-5): ");
         } else {
             printf("Pilih tujuan jelajah (0-4): ");
         }
 
-        int max_choice = p->boss_rush_unlocked ? 5 : 4;
-        int choice = getValidIntInput(0, max_choice);
-        if (choice == 0) {
+        int pilihan = getValidIntInput(0, batas_pilihan);
+        if (pilihan == 0) {
             break;
         }
 
-        if (choice == 1) {
+        if (pilihan == 1) {
             restAtVillage(p);
-        } else if (choice == 2 || choice == 3) {
-            // Masuk ke mode jelajah arah (Utara/Selatan/Timur/Barat)
-            exploreAreaByDirection(p, choice);
-        } else if (choice == 5 && p->boss_rush_unlocked) {
+        } else if (pilihan == 2 || pilihan == 3) {
+            exploreAreaByDirection(p, pilihan);
+        } else if (pilihan == 5 && p->boss_rush_unlocked == 1) {
             startBossRush(p);
-        } else if (choice == 4) {
+        } else if (pilihan == 4) {
             clearScreen();
             printf("==================================================\n");
             printf("  PERINGATAN: Kamu berada di depan gerbang Boss!\n");
@@ -335,12 +416,12 @@ void exploreWorld(struct Player *p) {
             printf("2. Mundur dulu\n");
             printf("Pilihan (1-2): ");
 
-            int confirm = getValidIntInput(1, 2);
-            if (confirm == 1) {
+            int konfirmasi = getValidIntInput(1, 2);
+            if (konfirmasi == 1) {
                 struct Monster boss = spawnBossMonster();
-                int result = startCombat(p, boss, 1);
+                int hasil = startCombat(p, boss, 1);
 
-                if (result == COMBAT_WIN) {
+                if (hasil == COMBAT_WIN) {
                     p->boss_rush_unlocked = 1;
 
                     clearScreen();
@@ -358,8 +439,8 @@ void exploreWorld(struct Player *p) {
                     printf("**************************************************\n");
                     printf("Kamu masih bisa lanjut menjelajah atau Save progresmu.\n");
                     pauseScreen();
-                } else if (result == COMBAT_LOSE) {
-                    return; // Kembali ke main.c untuk Game Over
+                } else if (hasil == COMBAT_LOSE) {
+                    return;
                 }
             }
         }
