@@ -9,7 +9,10 @@
 
 // Hitung damage dasar dikurangi defense, kali 2 jika critical
 int calculateDamage(int atk, int def, int is_critical) {
-    int base_dmg = atk - def;
+    // Contoh rumus RPG standar: DEF mengurangi damage secara proporsional
+    // Jika ATK = 50 dan DEF = 50, damage yang masuk tetap 25 (50%)
+    int base_dmg = (atk * 100) / (100 + def); 
+    
     if (base_dmg < 1) {
         base_dmg = 1;
     }
